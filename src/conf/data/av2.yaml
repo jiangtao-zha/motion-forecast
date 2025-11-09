@@ -1,0 +1,10 @@
+# conf/data/av2.yaml
+_target_: src.av2_datamodule.Av2DataModule # 假设 av2_datamodule.py 在 src 下
+
+data_root: "/home/ubuntu/argoverse-dataset_v2/sept_small" # 你的数据根目录
+data_folder: "" # DataModule 内部会处理 train/val
+train_batch_size: 128
+val_batch_size: 128  
+shuffle: True
+num_woker: 8 # 注意你的 DataModule 里是 num_woker, 建议统一为 num_workers
+pin_memory: True

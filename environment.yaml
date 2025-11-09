@@ -1,0 +1,39 @@
+name: sept
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+  
+dependencies:
+  # 1. Conda 管理核心依赖
+  - python=3.11
+  - pip
+  - pytorch
+  - torchvision
+  - pytorch-cuda=11.8
+
+  # 常用的数据科学和机器学习库 (由Conda管理)
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - scipy
+  - opencv
+  
+  # 其他重要工具
+  - tqdm
+  - pyyaml
+  - requests
+  - tensorboard # TensorBoard也可以由Conda管理
+  - hydra-core
+
+  # 2. Pip 管理 Conda 中找不到或版本不兼容的包
+  - pip:
+      - lightning
+      - wandb
+      - timm
+      - hydra-core
+      - ray
+      - huggingface-hub
+      - av2 == 0.2.1

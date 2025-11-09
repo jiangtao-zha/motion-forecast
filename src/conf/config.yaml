@@ -1,0 +1,17 @@
+# conf/config.yaml
+defaults:
+  - model: sept      # 默认使用 model/sept.yaml
+  - data: av2        # 默认使用 data/av2.yaml
+  - trainer: default # 默认使用 trainer/default.yaml
+  - optim: adamw     # 默认使用 optim/adamw.yaml
+  # - override hydra/sweeper: optuna
+  - _self_          # 允许在此文件也定义一些基本参数
+
+
+# --- 可以定义一些全局或不属于特定组的参数 ---
+project_name: "sept_argo2"
+run_name: "default_run_${now:%Y-%m-%d_%H-%M-%S}" # 自动生成带时间戳的运行名称
+
+
+# --- (可选) 随机种子 ---
+seed: 42

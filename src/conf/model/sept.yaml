@@ -1,0 +1,16 @@
+# conf/model/sept.yaml
+_target_: src.SEPT.SEPT # 指定要实例化的类 (假设 SEPT.py 在 src 下)
+
+agent_input_dim: 8    
+road_input_dim: 10    
+num_layers_Kt: 4
+num_layers_Ks: 4
+num_layers_Kc: 4
+d_model: 128
+num_head_Kt: 8
+num_head_Ks: 8
+num_head_Kc: 8
+num_queries: 6
+dim_feedforward: 256
+dropout: 0.2
+activation: 'gelu'

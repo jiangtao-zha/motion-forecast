@@ -1,0 +1,11 @@
+*
+!/src
+!/src/**
+!.gitignore
+!README.md
+!environment.yaml
+**/__pycache__
+src/lightning_logs
+src/outputs
+src/post_datamodule
+src/tb_logs

@@ -1,0 +1,25 @@
+# conf/sweeper/optuna.yaml
+
+_target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+direction: minimize
+study_name: my-4-gpu-hpo
+storage: "sqlite:///hpo_study.db" 
+n_trials: 20
+n_jobs: 4
+
+# --- 修正后的 Optuna 搜索空间 ---
+params:
+# 路径从 model.lr 修正为 optim.learning_rate
+optim.learning_rate: tag(log, interval(1e-5, 1e-3))
+
+# 路径从 model.dropout_p 修正为 model.dropout
+model.dropout: interval(0.0, 0.3)
+
+# 路径从 datamodule.batch_size 修正为 data.train_batch_size
+data.train_batch_size: choice(128, 256)
+
+# 同时覆盖 val_batch_size，使其与 train_batch_size 保持一致
+data.val_batch_size: ${data.train_batch_size}
+
+# 路径从 gradient_clip_val 修正为 trainer.gradient_clip_val
+trainer.gradient_clip_val: choice(0.0, 1.0, 3.0)
