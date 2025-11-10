@@ -98,7 +98,7 @@ def main(cfg: DictConfig) -> None:
     # trainer.test(
     #     model_module,
     #     datamodule=data_module,
-    #     ckpt_path='/home/ubuntu/DISK2/ZJT/sept/src/outputs/default_run_2025-11-09_17-26-47/checkpoints/sept-epoch=17-val_loss=2.48.ckpt' 
+    #     ckpt_path='/home/ubuntu/DISK2/ZJT/sept/src/outputs/default_run_2025-11-10_00-32-43/checkpoints/sept-epoch=34-val_loss=2.51.ckpt' 
     # )
     
 

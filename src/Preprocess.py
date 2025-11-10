@@ -16,7 +16,7 @@ from datamodule.Post.av2_extractor import Av2Extractor
 BASE_INPUT_DIR = Path("/home/ubuntu/DISK2/ZJT/argoverse_dataset_v2") 
 
 # 2. 用于存放输出结果的基础目录 (脚本会自动在下面创建 train, val, test 文件夹)
-BASE_OUTPUT_DIR = Path("/home/ubuntu/DISK2/ZJT/argoverse_dataset_v2/sept_small")
+BASE_OUTPUT_DIR = Path("/home/ubuntu/argoverse-dataset_v2/sept_emp")
 
 # 3. [新增] 指定要处理的子文件夹列表
 # SPLITS_TO_PROCESS = ["train", "val", "test"]

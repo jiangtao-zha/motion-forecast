@@ -39,14 +39,14 @@ def collate_fn(batch):
         "agent_pos_feat",
         "road_pos_feat",
 
-        # "lane_attr",
+        "lane_attr",
         # "lanes_start",  # [batch num_road 2]
         # "lanes_end",  # [batch num_road 2]
         # "lanes_length",  # [batch num_road]
         # "is_intersections",
 
         # "x_velocity",
-        # "x_attr",
+        "x_attr",
         # "lane_positions",
 
 

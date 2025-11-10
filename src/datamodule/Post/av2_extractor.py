@@ -141,46 +141,45 @@ class Av2Extractor:
         x_diff[:, 0] = torch.zeros(num_nodes, 2)
         y_diff = x_diff[:, 50:]
 
+        x_velocity_diff = x_velocity[:, :50].clone()
+        x_velocity_diff[:, 1:50] = torch.where(
+            (padding_mask[:, :49] | padding_mask[:, 1:50]),
+            torch.zeros(num_nodes, 49),
+            x_velocity_diff[:, 1:50] - x_velocity_diff[:, :49],
+        )
+        x_velocity_diff[:, 0] = torch.zeros(num_nodes)
+
         A, T, _ = x_diff[:, :50].shape
-        expand_x_attr = x_attr.unsqueeze(-2).expand(-1, T, -1)
 
         time_stamp = torch.arange(0, T, device=x_diff.device).float()
         time_stamp = time_stamp.view(1, T, 1).expand(A, -1, -1)
-        x_src = torch.concat([x_diff[:, :50],
-                              x_heading[:, :50].unsqueeze(-1),
-                              x_velocity[:, :50].unsqueeze(-1),
-                              expand_x_attr,
+
+        x_src = torch.concat([x_diff[:, :50],  # A 50 2
+                              x_velocity_diff.unsqueeze(-1),
+                              (~padding_mask[:, :50].unsqueeze(-1)).float(),
                               time_stamp],
                              dim=-1)
-        lane_src = torch.concat([lanes_start,
-                                 lanes_end,
-                                 lanes_length.unsqueeze(-1),
-                                 is_intersections.unsqueeze(-1),
-                                 lane_angles.unsqueeze(-1),
-                                 lane_attr],
+
+        lane_normalized = lane_positions - lane_ctrs.unsqueeze(-2)
+        lane_src = torch.concat([lane_normalized,
+                                 (~lane_padding_mask.unsqueeze(-1)).float()],  # L D
                                 dim=-1)
-        
-        # x_core_heading = x_heading[:,49]
-        # center = torch.cat([x_center, lane_ctrs], dim=0) # [nums 2]
-        # angles = torch.cat([x_core_heading,lane_angles],dim=0) # [nums 1]
 
-        # angles = torch.stack([torch.cos(angles), torch.sin(angles)], dim=-1) # [nums 2]
-        # pos_feat = torch.cat([center, angles], dim=-1)      
+        agent_heading = x_heading[:, 49]  # [nums 1]
+        agent_angles = torch.stack(
+            [torch.cos(agent_heading), torch.sin(agent_heading)], dim=-1)  # [nums 2]
 
-        agent_heading = x_heading[:,49] # [nums 1]
-        agent_angles = torch.stack([torch.cos(agent_heading), torch.sin(agent_heading)], dim=-1) # [nums 2]
+        road_angles = torch.stack(
+            [torch.cos(lane_angles), torch.sin(lane_angles)], dim=-1)  # [nums 2]
 
-        road_angles = torch.stack([torch.cos(lane_angles), torch.sin(lane_angles)], dim=-1) # [nums 2]
-
-        agent_pos_feat = torch.cat([x_center,agent_angles],dim=-1)
-        road_pos_feat = torch.cat([lane_ctrs,road_angles],dim=-1)
-
+        agent_pos_feat = torch.cat([x_center, agent_angles], dim=-1)
+        road_pos_feat = torch.cat([lane_ctrs, road_angles], dim=-1)
 
         return {
             "x_src": x_src,
             "lane_src": lane_src,
-            "agent_pos_feat":agent_pos_feat,
-            "road_pos_feat":road_pos_feat,
+            "agent_pos_feat": agent_pos_feat,
+            "road_pos_feat": road_pos_feat,
             "y_diff": y_diff,
 
             "x_padding_mask": padding_mask,
@@ -189,13 +188,13 @@ class Av2Extractor:
             # "x_position": x_position,
             # "x_heading": x_heading,
             # "x_velocity": x_velocity,
-            # "x_attr": x_attr,
+            "x_attr": x_attr,
             # "x_center": x_center,
 
             # "lane_positions": lane_positions,
             # "lane_centers": lane_ctrs,
             # "lane_angles": lane_angles,
-            # "lane_attr": lane_attr,
+            "lane_attr": lane_attr,
             # "lanes_start": lanes_start,
             # "lanes_end": lanes_end,
             # "lanes_length": lanes_length,

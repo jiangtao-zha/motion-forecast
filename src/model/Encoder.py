@@ -4,7 +4,8 @@ from turtle import pos
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-torch.set_printoptions(profile="full", threshold=100000, linewidth=100)
+from model.lane_embedding import LaneEmbeddingLayer
+# torch.set_printoptions(profile="full", threshold=100000, linewidth=100)
 
 
 class TempoNet(nn.Module):
@@ -73,9 +74,8 @@ class SeptEncoder(nn.Module):
         self.projection1 = nn.Linear(agent_dim, d_model)
         self.relu1 = nn.ReLU()
         self.norm_agent_proj = nn.LayerNorm(d_model)
-        self.projection2 = nn.Linear(road_dim, d_model)
-        self.relu2 = nn.ReLU()
-        self.norm_road_proj = nn.LayerNorm(d_model)
+
+        self.lane_embed = LaneEmbeddingLayer(3, d_model)
 
         self.PositionEncoding = nn.Sequential(
             nn.Linear(4, d_model),
@@ -83,8 +83,11 @@ class SeptEncoder(nn.Module):
             nn.Linear(d_model, d_model),
         )
 
-    def forward(self, src_agent, src_road, agent_pos_feat,road_pos_feat, agent_key_padding_mask=None, agent_padding_mask=None, road_key_padding_mask=None) -> torch.Tensor:
-        # src_road 形状: [batch, seq_r, road_dim]
+        self.actor_type_embed = nn.Parameter(torch.Tensor(4, d_model))
+        self.lane_type_embed = nn.Parameter(torch.Tensor(1, 1, d_model))
+
+    def forward(self, src_agent, src_road, agent_pos_feat, road_pos_feat, agent_attr, road_attr, agent_key_padding_mask=None, agent_padding_mask=None, road_key_padding_mask=None) -> torch.Tensor:
+        # src_road 形状: [batch, seq_r, num_r, road_dim]
         # src_agent 形状: [batch, seq_a, Time, agent_dim]
         # agent_pos_feat 包括agent_heading agent_center  Size:[batch,seq_r,4]
         # road_pos_feat road_heading  road_center Size:[batch,seq_l,4]
@@ -124,20 +127,27 @@ class SeptEncoder(nn.Module):
         x_agent_maxpool = torch.max(x_agent_encode_full, dim=2).values
         # x_anget_maxpool : [batch seq_a d_model]
 
-        # add position embedding 
-        x_agent_maxpool = x_agent_maxpool + self.PositionEncoding(agent_pos_feat)
+        # add position embedding
+        x_agent_maxpool += self.PositionEncoding(agent_pos_feat)
+
+        # add type embedding
+        x_agent_maxpool += self.actor_type_embed[agent_attr[..., 2].long()]
 
         # 排除由于batch拉大强行加入的pad_agent 这里面mask全都是 1
         # x_agent_maxpool[agent_key_padding_mask.unsqueeze(-1).expand(-1,-1,x_agent_maxpool.size(2))] = 0
 
         # x_anget_maxpool : [batch seq_a d_model]
-        # road_process
-        x_road_projection = self.relu2(self.projection2(src_road))
-        x_road_projection = self.norm_road_proj(x_road_projection)
-        # x_road_projection : [batch seq_r d_model]
 
-        # add position embedding 
-        x_road_projection = x_road_projection + self.PositionEncoding(road_pos_feat)
+        # road_process
+        B, M, L, D = src_road.shape  # [batch num_L num_N 3]
+
+        x_road_projection = self.lane_embed(src_road.view(-1, L, D).contiguous())   
+        x_road_projection = x_road_projection.view(B, M, -1)
+        # add position embedding
+        x_road_projection += self.PositionEncoding(road_pos_feat)
+
+        # add type embedding
+        x_road_projection += self.lane_type_embed.repeat(B, M, 1)
 
         # concat road and agent
         x = torch.concat([x_agent_maxpool, x_road_projection], dim=1)

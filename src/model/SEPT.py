@@ -38,12 +38,14 @@ class SEPT(nn.Module):
                                    dropout=dropout,
                                    activation=activation)
 
-    def forward(self, src_agent, src_road, agent_pos_feat, road_pos_feat, agent_key_padding_mask=None, agent_padding_mask=None, road_key_padding_mask=None
+    def forward(self, src_agent, src_road, agent_pos_feat, road_pos_feat, agent_attr,road_attr,agent_key_padding_mask=None, agent_padding_mask=None, road_key_padding_mask=None
                 ) -> tuple[torch.Tensor, torch.Tensor]:
         encode_x = self.encoder(src_agent=src_agent,
                                 src_road=src_road,
                                 agent_pos_feat=agent_pos_feat,
                                 road_pos_feat=road_pos_feat,
+                                agent_attr = agent_attr,
+                                road_attr = road_attr,
                                 agent_key_padding_mask=agent_key_padding_mask,
                                 agent_padding_mask=agent_padding_mask,
                                 road_key_padding_mask=road_key_padding_mask

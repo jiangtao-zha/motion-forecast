@@ -1,8 +1,8 @@
 # conf/model/sept.yaml
 _target_: src.SEPT.SEPT # 指定要实例化的类 (假设 SEPT.py 在 src 下)
 
-agent_input_dim: 8    
-road_input_dim: 10    
+agent_input_dim: 5    
+road_input_dim: 3    
 num_layers_Kt: 4
 num_layers_Ks: 4
 num_layers_Kc: 4

@@ -67,6 +67,8 @@ class SEPT_Module(L.LightningModule):
                                              src_road=batch['lane_src'],
                                              agent_pos_feat=batch['agent_pos_feat'],
                                              road_pos_feat=batch['road_pos_feat'],
+                                             agent_attr = batch['x_attr'],
+                                             road_attr = batch['lane_attr'],
                                              agent_key_padding_mask=batch['x_key_padding_mask'],
                                              agent_padding_mask=batch['x_padding_mask'][..., :50],
                                              road_key_padding_mask=batch['lane_key_padding_mask'])
@@ -102,6 +104,8 @@ class SEPT_Module(L.LightningModule):
                                              src_road=batch['lane_src'],
                                              agent_pos_feat=batch['agent_pos_feat'],
                                              road_pos_feat=batch['road_pos_feat'],
+                                             agent_attr = batch['x_attr'],
+                                             road_attr = batch['lane_attr'],
                                              agent_key_padding_mask=batch['x_key_padding_mask'],
                                              agent_padding_mask=batch['x_padding_mask'][..., :50],
                                              road_key_padding_mask=batch['lane_key_padding_mask'])
@@ -131,12 +135,12 @@ class SEPT_Module(L.LightningModule):
         
     def test_step(self, batch, batch_idx):
         target_gt = batch['y_diff'][:, 0, :, :]
-        
-        # 1. 前向传播
         trajectory, probability = self.model(src_agent=batch['x_src'],
                                              src_road=batch['lane_src'],
                                              agent_pos_feat=batch['agent_pos_feat'],
                                              road_pos_feat=batch['road_pos_feat'],
+                                             agent_attr = batch['x_attr'],
+                                             road_attr = batch['lane_attr'],
                                              agent_key_padding_mask=batch['x_key_padding_mask'],
                                              agent_padding_mask=batch['x_padding_mask'][..., :50],
                                              road_key_padding_mask=batch['lane_key_padding_mask'])

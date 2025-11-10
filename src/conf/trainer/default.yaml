@@ -5,7 +5,7 @@ max_epochs: 60
 accelerator: "cuda"
 devices: auto # 使用哪个 GPU, 或 [0, 1] 使用多个, 或 "auto"
 precision: 16-mixed # 可选：混合精度
-gradient_clip_val: 1.0
+gradient_clip_val: 3.0
 gradient_clip_algorithm: norm
 log_every_n_steps: 50
 
