@@ -50,15 +50,13 @@ class SEPT(nn.Module):
                                 agent_padding_mask=agent_padding_mask,
                                 road_key_padding_mask=road_key_padding_mask
                                 )
-        # assert not torch.isnan(encode_x).any(), "encode_x has nan"
-        memory_key_padding_mask = None
-        if agent_key_padding_mask is not None and road_key_padding_mask is not None:
-            memory_key_padding_mask = torch.cat(
-                [agent_key_padding_mask, road_key_padding_mask], dim=1)
-        trajectory, probability = self.decoder(memory=encode_x,
+
+        kv_angent = encode_x[:,0].unsqueeze(1)
+        mask_agent = agent_key_padding_mask[:, 0].unsqueeze(1)
+        trajectory, probability = self.decoder(memory=kv_angent,
                                                memory_mask=None,
-                                               memory_key_padding_mask=memory_key_padding_mask)
-        # assert not torch.isnan(trajectory).any(), "trajectory has nan"
+                                               memory_key_padding_mask=mask_agent)
+
 
         return trajectory, probability
 

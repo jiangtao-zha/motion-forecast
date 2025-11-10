@@ -3,4 +3,4 @@
 learning_rate: 5e-5
 weight_decay: 0.01
 # 可以添加其他优化器参数，如 betas, eps 等
-warmup_steps: 6000
+warmup_steps: 5000
