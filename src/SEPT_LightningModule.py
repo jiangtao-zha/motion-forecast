@@ -1,4 +1,4 @@
-from model.SEPT import SEPT
+from model.SEPT_insert import SEPT
 import pytorch_lightning as L
 from model.Loss import WinTakeAllLoss
 from metrics import minADE, minFDE, brierMinFDE, MR
@@ -7,7 +7,7 @@ from torchmetrics import MetricCollection
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR, SequentialLR
-torch.set_printoptions(profile="full", threshold=100000, linewidth=100)
+# torch.set_printoptions(profile="full", threshold=100000, linewidth=100)
 
 
 class SEPT_Module(L.LightningModule):
@@ -28,7 +28,9 @@ class SEPT_Module(L.LightningModule):
                  learning_rate=1e-4,
                  weight_decay=0.01,
                  train_batch_size: int = 32,
-                 warmup_steps: int = 1000):
+                 warmup_steps: int = 1000,
+                 start_lr_ratio:int = 0,
+                 min_learning_rate:int = 0):
         super().__init__()
         self.model = SEPT(agent_input_dim=agent_input_dim,
                           road_input_dim=road_input_dim,
@@ -63,26 +65,15 @@ class SEPT_Module(L.LightningModule):
         self.save_hyperparameters()
 
     def training_step(self, batch, batch_idx):
-        trajectory, probability = self.model(src_agent=batch['x_src'],
-                                             src_road=batch['lane_src'],
-                                             agent_pos_feat=batch['agent_pos_feat'],
-                                             road_pos_feat=batch['road_pos_feat'],
-                                             agent_attr = batch['x_attr'],
-                                             road_attr = batch['lane_attr'],
-                                             agent_key_padding_mask=batch['x_key_padding_mask'],
-                                             agent_padding_mask=batch['x_padding_mask'][..., :50],
-                                             road_key_padding_mask=batch['lane_key_padding_mask'])
+        out = self.model(batch)
 
-
-        loss, loss_reg, loss_cls = WinTakeAllLoss(trajectory=trajectory,
-                                                  probability_logits=probability,
-                                                  y_hat=batch['y_diff'][:, 0, :, :])
+        loss, loss_reg, loss_cls, loss_other = WinTakeAllLoss(out, batch)
 
         # 准备 metric 输入
         # 需要将 probability (logits) 转换为概率
         prob_softmax = torch.softmax(
-            probability.squeeze(-1), dim=-1)  # 形状 [B, N]
-        outputs_for_metrics = {"y_hat": trajectory, "pi": prob_softmax}
+            out["pi"].squeeze(-1), dim=-1)  # 形状 [B, N]
+        outputs_for_metrics = {"y_hat": out["y_hat"], "pi": prob_softmax}
         target_for_metrics = batch['y_diff'][:, 0, :, :]
 
         # 更新 metric 状态
@@ -90,9 +81,13 @@ class SEPT_Module(L.LightningModule):
 
         # 记录损失
         self.log("train_loss", loss, on_step=True,
-                 on_epoch=True, prog_bar=True,sync_dist=True)
-        self.log("train_reg_loss", loss_reg, on_step=False, on_epoch=True,sync_dist=True)
-        self.log("train_cls_loss", loss_cls, on_step=False, on_epoch=True,sync_dist=True)
+                 on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("train_reg_loss", loss_reg, on_step=False,
+                 on_epoch=True, sync_dist=True)
+        self.log("train_cls_loss", loss_cls, on_step=False,
+                 on_epoch=True, sync_dist=True)
+        self.log("train_other_loss", loss_other, on_step=True,
+                 on_epoch=True, sync_dist=True)
 
         # 记录 metrics (在 epoch 结束时计算并记录)
         self.log_dict(self.train_metrics, on_step=False, on_epoch=True)
@@ -100,60 +95,62 @@ class SEPT_Module(L.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        trajectory, probability = self.model(src_agent=batch['x_src'],
-                                             src_road=batch['lane_src'],
-                                             agent_pos_feat=batch['agent_pos_feat'],
-                                             road_pos_feat=batch['road_pos_feat'],
-                                             agent_attr = batch['x_attr'],
-                                             road_attr = batch['lane_attr'],
-                                             agent_key_padding_mask=batch['x_key_padding_mask'],
-                                             agent_padding_mask=batch['x_padding_mask'][..., :50],
-                                             road_key_padding_mask=batch['lane_key_padding_mask'])
+        out = self.model(batch)
 
-        loss, loss_reg, loss_cls = WinTakeAllLoss(trajectory=trajectory,
-                                                  probability_logits=probability,
-                                                  y_hat=batch['y_diff'][:, 0, :, :])
-        # assert not torch.isnan(loss).any(), "Loss is Nan"
-        # assert not torch.isinf(loss).any(), "Loss is Inf"
+        loss, loss_reg, loss_cls, loss_other = WinTakeAllLoss(out, batch)
 
-        prob_softmax = torch.softmax(probability.squeeze(-1), dim=-1)
-        outputs_for_metrics = {"y_hat": trajectory, "pi": prob_softmax}
+        # 准备 metric 输入
+        # 需要将 probability (logits) 转换为概率
+        prob_softmax = torch.softmax(
+            out["pi"].squeeze(-1), dim=-1)  # 形状 [B, N]
+        outputs_for_metrics = {"y_hat": out["y_hat"], "pi": prob_softmax}
         target_for_metrics = batch['y_diff'][:, 0, :, :]
 
         # 更新验证 metric
         self.val_metrics.update(outputs_for_metrics, target_for_metrics)
 
         # 记录验证损失 (修正键名)
-        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True,sync_dist=True)
-        self.log("val_reg_loss", loss_reg, on_step=False, on_epoch=True,sync_dist=True)
+        self.log("val_loss", loss, on_step=False,
+                 on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("val_reg_loss", loss_reg, on_step=False,
+                 on_epoch=True, sync_dist=True)
         self.log("val_cls_loss", loss_cls,
-                 on_step=False, on_epoch=True,sync_dist=True)  # 修正键名
+                 on_step=False, on_epoch=True, sync_dist=True)
+        self.log("val_other_loss", loss_other, on_step=True,
+                 on_epoch=True, sync_dist=True)
 
         # 记录验证 metrics (在 epoch 结束时计算并记录)
         self.log_dict(self.val_metrics, on_step=False,
                       on_epoch=True, prog_bar=True)
-        
+
     def test_step(self, batch, batch_idx):
         target_gt = batch['y_diff'][:, 0, :, :]
-        trajectory, probability = self.model(src_agent=batch['x_src'],
-                                             src_road=batch['lane_src'],
-                                             agent_pos_feat=batch['agent_pos_feat'],
-                                             road_pos_feat=batch['road_pos_feat'],
-                                             agent_attr = batch['x_attr'],
-                                             road_attr = batch['lane_attr'],
-                                             agent_key_padding_mask=batch['x_key_padding_mask'],
-                                             agent_padding_mask=batch['x_padding_mask'][..., :50],
-                                             road_key_padding_mask=batch['lane_key_padding_mask'])
-        
+        out = self.model(batch)
+
         # 2. 准备 Metric 输入
-        prob_softmax = torch.softmax(probability.squeeze(-1), dim=-1)
-        outputs_for_metrics = {"y_hat": trajectory, "pi": prob_softmax}
+        prob_softmax = torch.softmax(out["pi"].squeeze(-1), dim=-1)
+        outputs_for_metrics = {"y_hat": out["y_hat"], "pi": prob_softmax}
 
         # 3. 更新测试集指标状态
         self.test_metrics.update(outputs_for_metrics, target_gt)
-        
+
         # 4. 记录测试集指标 (通常只记录在 epoch 结束时)
         self.log_dict(self.test_metrics, on_step=False, on_epoch=True)
+
+    def linear_warmup_lambda(self, step: int):
+        """
+        计算 Warmup 阶段的学习率比例。
+        在 step=0 时，比例为 start_ratio。
+        在 step=warmup_steps 时，比例为 1.0。
+        """
+        start_ratio = 0.1  # 假设你想让起始学习率是 max_lr 的 10%
+        if step < self.hparams.warmup_steps:
+            # 计算当前步数的增量比例： (1.0 - start_ratio) * (step / warmup_steps)
+            # 总比例 = start_ratio + 增量比例
+            return start_ratio + (1.0 - start_ratio) * (step / max(1.0, self.hparams.warmup_steps))
+        else:
+            # 在 warmup 结束时，比例因子锁定在 1.0
+            return 1.0
 
     def configure_optimizers(self):
         # 使用 self.hparams 访问保存的超参数 (如果使用了 save_hyperparameters)
@@ -168,13 +165,14 @@ class SEPT_Module(L.LightningModule):
         # 调度器 1: 线性预热
         warmup_scheduler = LambdaLR(
             optimizer,
-            lr_lambda=lambda step: step / max(1.0, self.hparams.warmup_steps)
+            lr_lambda=self.linear_warmup_lambda
         )
 
         # 调度器 2: 余弦衰减 (从 warmup 结束时开始)
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
-            T_max=(total_steps - self.hparams.warmup_steps)
+            T_max=(total_steps - self.hparams.warmup_steps),
+            eta_min=1e-6
         )
 
         # 3. 使用 SequentialLR 组合它们

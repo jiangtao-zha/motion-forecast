@@ -42,7 +42,6 @@ def main(cfg: DictConfig) -> None:
         num_head_Kt=cfg.model.num_head_Kt,
         num_head_Ks=cfg.model.num_head_Ks,
         num_head_Kc=cfg.model.num_head_Kc,
-
         num_queries=cfg.model.num_queries,
         dim_feedforward=cfg.model.dim_feedforward,
         dropout=cfg.model.dropout, # 假设 LightningModule 内部使用 drop_out
@@ -51,7 +50,9 @@ def main(cfg: DictConfig) -> None:
         learning_rate=cfg.optim.learning_rate,
         weight_decay=cfg.optim.weight_decay,
         train_batch_size = cfg.data.train_batch_size,
-        warmup_steps=cfg.optim.warmup_steps
+        warmup_steps=cfg.optim.warmup_steps,
+        start_lr_ratio = cfg.optim.start_lr_ratio,
+        min_learning_rate = cfg.optim.min_learning_rate
     )
     # print(model_module)
     
@@ -83,13 +84,13 @@ def main(cfg: DictConfig) -> None:
         logger=logger,
         callbacks=[checkpoint_callback, early_stop_callback, lr_monitor]
     )
-    trainer.fit(model_module,
-                datamodule=data_module) # 使用 datamodule 关键字参数
-    
-    # resume_ckpt_path = "/home/ubuntu/DISK2/ZJT/sept/src/outputs/default_run_2025-11-04_20-08-54/checkpoints/sept-epoch=35-val_loss=2.21.ckpt"
     # trainer.fit(model_module,
-    #             datamodule=data_module,
-    #             ckpt_path = resume_ckpt_path) # 使用 datamodule 关键字参数
+    #             datamodule=data_module) # 使用 datamodule 关键字参数
+    
+    resume_ckpt_path = "/home/ubuntu/DISK2/ZJT/sept/src/outputs/default_run_2025-11-11_21-58-25/checkpoints/sept-epoch=49-val_loss=2.39.ckpt"
+    trainer.fit(model_module,
+                datamodule=data_module,
+                ckpt_path = resume_ckpt_path) # 使用 datamodule 关键字参数
 
     # print("Starting testing...")
     # trainer = pl.Trainer(

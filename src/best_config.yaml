@@ -1,0 +1,40 @@
+model:
+  _target_: src.SEPT.SEPT
+  agent_input_dim: 5
+  road_input_dim: 3
+  num_layers_Kt: 4
+  num_layers_Ks: 4
+  num_layers_Kc: 4
+  d_model: 128
+  num_head_Kt: 8
+  num_head_Ks: 8
+  num_head_Kc: 8
+  num_queries: 6
+  dim_feedforward: 512
+  dropout: 0.1
+  activation: gelu
+data:
+  _target_: src.av2_datamodule.Av2DataModule
+  data_root: /home/ubuntu/argoverse-dataset_v2/sept_emp
+  data_folder: ''
+  train_batch_size: 96
+  val_batch_size: 96
+  shuffle: true
+  num_woker: 8
+  pin_memory: true
+trainer:
+  max_epochs: 60
+  accelerator: cuda
+  devices: auto
+  precision: 16-mixed
+  gradient_clip_val: 3.0
+  gradient_clip_algorithm: norm
+  log_every_n_steps: 50
+  strategy: ddp_find_unused_parameters_true
+optim:
+  learning_rate: 0.0004
+  weight_decay: 0.01
+  warmup_steps: 5000
+project_name: sept_argo2
+run_name: default_run_${now:%Y-%m-%d_%H-%M-%S}
+seed: 42

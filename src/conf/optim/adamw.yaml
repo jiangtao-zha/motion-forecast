@@ -1,6 +1,8 @@
 # conf/optim/adamw.yaml
 # 这些参数会被 LightningModule 的 self.hparams 访问
-learning_rate: 5e-5
-weight_decay: 0.01
+learning_rate: 4e-4
+weight_decay: 1e-4
 # 可以添加其他优化器参数，如 betas, eps 等
 warmup_steps: 5000
+start_lr_ratio: 0.1
+min_learning_rate: 1e-6

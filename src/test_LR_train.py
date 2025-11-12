@@ -78,7 +78,7 @@ def main(cfg: DictConfig) -> None:
     # 获取建议值并更新配置
     suggested_lr = lr_finder_result.suggestion()
     print(f"Suggested LR: {suggested_lr}")
-    model_module.hparams.learning_rate = suggested_lr 
+    # model_module.hparams.learning_rate = suggested_lr 
     # 或者 cfg.optim.learning_rate = suggested_lr
 
     # tuner.scale_batch_size(model_module, datamodule=data_module, mode='binsearch')
