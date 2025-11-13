@@ -12,5 +12,5 @@ num_head_Ks: 8
 num_head_Kc: 8
 num_queries: 6
 dim_feedforward: 512
-dropout: 0.1
+dropout: 0.01
 activation: 'gelu'

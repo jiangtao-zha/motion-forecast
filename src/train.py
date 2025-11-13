@@ -84,13 +84,13 @@ def main(cfg: DictConfig) -> None:
         logger=logger,
         callbacks=[checkpoint_callback, early_stop_callback, lr_monitor]
     )
-    # trainer.fit(model_module,
-    #             datamodule=data_module) # 使用 datamodule 关键字参数
-    
-    resume_ckpt_path = "/home/ubuntu/DISK2/ZJT/sept/src/outputs/default_run_2025-11-11_21-58-25/checkpoints/sept-epoch=49-val_loss=2.39.ckpt"
     trainer.fit(model_module,
-                datamodule=data_module,
-                ckpt_path = resume_ckpt_path) # 使用 datamodule 关键字参数
+                datamodule=data_module) # 使用 datamodule 关键字参数
+    
+    # resume_ckpt_path = "/home/ubuntu/DISK2/ZJT/sept/src/outputs/default_run_2025-11-11_21-58-25/checkpoints/sept-epoch=49-val_loss=2.39.ckpt"
+    # trainer.fit(model_module,
+    #             datamodule=data_module,
+    #             ckpt_path = resume_ckpt_path) # 使用 datamodule 关键字参数
 
     # print("Starting testing...")
     # trainer = pl.Trainer(
