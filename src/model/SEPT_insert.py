@@ -1,3 +1,4 @@
+from matplotlib import axis
 import torch
 import torch.nn as nn
 from model.lane_embedding import LaneEmbeddingLayer
@@ -107,11 +108,12 @@ class SEPT(nn.Module):
 
         self.mlp_probability = nn.Sequential(nn.Linear(d_model, d_model * 2),
                                              nn.ReLU(),
-                                             nn.Linear(d_model * 2, 1))
+                                             nn.Linear(d_model * 2, 1),
+                                             nn.ReLU())
 
         self.dense_predictor = nn.Sequential(
-            nn.Linear(d_model, 256), nn.ReLU(), nn.Linear(
-                256, self.pre_time * 2)
+            nn.Linear(d_model, d_model * 2), nn.ReLU(), nn.Linear(
+                d_model * 2, self.pre_time * 2)
         )
 
     def forward(self, data):
@@ -136,23 +138,19 @@ class SEPT(nn.Module):
         x_agent_encode = self.TempoNet_encoder(
             src=real_agent_feature,
             src_key_padding_mask=real_agent_time_mask)
+        x_agent_maxpool = torch.max(x_agent_encode,axis=1).values
 
         x_agent_encode_full = torch.zeros(
-            B, A, T, D, device=x_agent_projection.device, dtype=x_agent_projection.dtype)
+            B, A, D, device=x_agent_projection.device, dtype=x_agent_projection.dtype)
 
-        x_agent_encode_full[real_key_agent_mask] = x_agent_encode
-
-        # x_agent_encode_full = torch.nan_to_num(x_agent_encode_full, nan=0.0)
-
-        x_agent_maxpool = torch.max(x_agent_encode_full, dim=2).values
-        # x_anget_maxpool : [batch seq_a d_model]
+        x_agent_encode_full[real_key_agent_mask] = x_agent_maxpool
 
         # add position embedding
         # [B A 4]
-        x_agent_maxpool += self.PositionEncoding(data["agent_pos_feat"])
+        x_agent_encode_full += self.PositionEncoding(data["agent_pos_feat"])
 
         # add type embedding
-        x_agent_maxpool += self.actor_type_embed[data["x_attr"][..., 2].long()]
+        x_agent_encode_full += self.actor_type_embed[data["x_attr"][..., 2].long()]
         # x_anget_maxpool : [batch seq_a d_model]
 
         # road_process
@@ -168,7 +166,7 @@ class SEPT(nn.Module):
         x_road_projection += self.lane_type_embed.repeat(B, M, 1)
 
         # concat road and agent
-        x = torch.concat([x_agent_maxpool, x_road_projection], dim=1)
+        x = torch.concat([x_agent_encode_full, x_road_projection], dim=1)
 
         spa_padding_mask = None
         if data["x_key_padding_mask"] is not None and data["lane_key_padding_mask"] is not None:

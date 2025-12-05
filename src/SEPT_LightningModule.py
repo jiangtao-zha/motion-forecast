@@ -29,8 +29,8 @@ class SEPT_Module(L.LightningModule):
                  weight_decay=0.01,
                  train_batch_size: int = 32,
                  warmup_steps: int = 1000,
-                 start_lr_ratio:int = 0,
-                 min_learning_rate:int = 0):
+                 start_lr_ratio: int = 0,
+                 min_learning_rate: int = 0):
         super().__init__()
         self.model = SEPT(agent_input_dim=agent_input_dim,
                           road_input_dim=road_input_dim,
@@ -53,8 +53,8 @@ class SEPT_Module(L.LightningModule):
         metrics = MetricCollection({
             f'minADE{k_value}': minADE(k=k_value),
             f'minFDE{k_value}': minFDE(k=k_value),
-            # f'minADE{1}': minADE(k=1),
-            # f'minFDE{1}': minFDE(k=1),
+            f'minADE{1}': minADE(k=1),
+            f'minFDE{1}': minFDE(k=1),
             f'brierMinFDE{k_value}': brierMinFDE(k=k_value),
             'MR': MR()
         })
