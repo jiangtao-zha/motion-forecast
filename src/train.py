@@ -59,7 +59,7 @@ def main(cfg: DictConfig) -> None:
 
     # --- 3. 配置 Logger ---
     # 可以根据 cfg 中的参数配置 logger
-    logger = TensorBoardLogger("tb_logs", name=cfg.run_name)
+    logger = TensorBoardLogger(save_dir=f"outputs/{cfg.run_name}", name="", version="")
     # logger = WandbLogger(project=cfg.project_name, name=cfg.run_name)
 
     # --- 4. 配置 Callbacks ---
