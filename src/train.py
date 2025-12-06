@@ -43,7 +43,10 @@ def main(cfg: DictConfig) -> None:
         num_head_Ks=cfg.model.num_head_Ks,
         num_head_Kc=cfg.model.num_head_Kc,
         num_queries=cfg.model.num_queries,
-        dim_feedforward=cfg.model.dim_feedforward,
+        mlp_ratio = cfg.model.mlp_ratio,
+        qkv_bias=cfg.model.qkv_bias,
+        linear_bias=cfg.model.linear_bias,
+        drop_path=cfg.model.drop_path,
         dropout=cfg.model.dropout, # 假设 LightningModule 内部使用 drop_out
         activation=cfg.model.activation,
         # --- 训练参数 (优化器和损失权重) ---
@@ -59,7 +62,7 @@ def main(cfg: DictConfig) -> None:
 
     # --- 3. 配置 Logger ---
     # 可以根据 cfg 中的参数配置 logger
-    logger = TensorBoardLogger("tb_logs", name=cfg.run_name)
+    logger = TensorBoardLogger(save_dir=f"outputs/{cfg.run_name}", name="", version="")
     # logger = WandbLogger(project=cfg.project_name, name=cfg.run_name)
 
     # --- 4. 配置 Callbacks ---

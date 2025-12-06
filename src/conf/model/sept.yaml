@@ -11,6 +11,9 @@ num_head_Kt: 8
 num_head_Ks: 8
 num_head_Kc: 8
 num_queries: 6
-dim_feedforward: 512
-dropout: 0.1
-activation: 'gelu'
+mlp_ratio: 4.0
+qkv_bias: False
+linear_bias: False
+drop_path: 0.2
+dropout: 0
+activation: nn.GELU

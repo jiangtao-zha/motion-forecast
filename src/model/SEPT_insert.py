@@ -2,10 +2,11 @@ from matplotlib import axis
 import torch
 import torch.nn as nn
 from model.lane_embedding import LaneEmbeddingLayer
-
+from model.transformer_blocks import Block
 
 class SEPT(nn.Module):
-    def __init__(self, agent_input_dim: int,
+    def __init__(self, 
+                 agent_input_dim: int,
                  road_input_dim: int,
                  num_layers_Kt: int,
                  num_layers_Ks: int,
@@ -15,35 +16,44 @@ class SEPT(nn.Module):
                  num_head_Ks: int,
                  num_head_Kc: int,
                  num_queries: int,
-                 dim_feedforward: int,
-                 dropout: float = 0.1,
-                 activation='gelu'):
+                 mlp_ratio: float,
+                 qkv_bias:bool,
+                 linear_bias:bool,
+                 drop_path:float,
+                 dropout: float = 0,
+                 activation=nn.GELU):
         super().__init__()
         # Encoder
 
         # TempoNet
-        self.TempoNet_encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=num_head_Kt,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            activation=activation,
-            batch_first=True,
-            norm_first=True)
-        self.TempoNet_encoder = nn.TransformerEncoder(
-            self.TempoNet_encoder_layer, num_layers=num_layers_Kt)
+        dpr = [x.item() for x in torch.linspace(0, drop_path, num_layers_Kt)]
+        self.TempoNet_encoder = nn.ModuleList(
+            Block(dim=d_model,
+                  num_heads=num_head_Kt,
+                  mlp_ratio=mlp_ratio,
+                  qkv_bias=qkv_bias,
+                  linear_bias=linear_bias,
+                  drop=dropout,
+                  drop_path=dpr[i],
+                  cross_attn=False
+                  )
+            for i in range(num_layers_Kt)
+        )
 
         # SpaNet
-        self.SpaNet_encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=num_head_Ks,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            activation=activation,
-            batch_first=True,
-            norm_first=True)
-        self.SpaNet_encoder = nn.TransformerEncoder(
-            self.SpaNet_encoder_layer, num_layers=num_layers_Ks)
+        dpr = [x.item() for x in torch.linspace(0, drop_path, num_layers_Ks)]
+        self.SpaNet_encoder = nn.ModuleList(
+            Block(dim=d_model,
+                  num_heads=num_head_Ks,
+                  mlp_ratio=mlp_ratio,
+                  qkv_bias=qkv_bias,
+                  linear_bias=linear_bias,
+                  drop=dropout,
+                  drop_path=dpr[i],
+                  cross_attn=False
+                  )
+            for i in range(num_layers_Ks)
+        )
 
         # Encoder Embedding
         self.agent_embed = nn.Linear(agent_input_dim, d_model)
@@ -65,40 +75,33 @@ class SEPT(nn.Module):
         self.cross_depth = num_layers_Kc
         self.queries = nn.Parameter(torch.randn(num_queries, d_model))
 
-        # self.CrossAttender_decoderlayer = nn.TransformerDecoderLayer(
-        #     d_model=d_model,
-        #     nhead=num_head_Kc,
-        #     dim_feedforward=dim_feedforward,
-        #     dropout=dropout,
-        #     activation=activation,
-        #     batch_first=True,
-        #     norm_first=True)
-        # self.CrossAttender_decoder = nn.TransformerDecoder(
-        #     self.CrossAttender_decoderlayer, num_layers=num_layers_Kc)
+        dpr = [x.item() for x in torch.linspace(0, drop_path, self.cross_depth)]
 
-        self.agent_CrossAttender_decoder = nn.ModuleList([
-            nn.TransformerDecoderLayer(
-                d_model=d_model,
-                nhead=num_head_Kc,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout,
-                activation=activation,
-                batch_first=True,
-                norm_first=True
-            ) for _ in range(self.cross_depth)
-        ])
+        self.agent_CrossAttender_decoder = nn.ModuleList(
+            Block(dim=d_model,
+                  num_heads=num_head_Kc,
+                  mlp_ratio=mlp_ratio,
+                  qkv_bias=qkv_bias,
+                  linear_bias=linear_bias,
+                  drop=dropout,
+                  drop_path=dpr[i],
+                  cross_attn=True
+                  )
+            for i in range(self.cross_depth)
+        )
 
-        self.road_CrossAttender_decoder = nn.ModuleList([
-            nn.TransformerDecoderLayer(
-                d_model=d_model,
-                nhead=num_head_Kc,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout,
-                activation=activation,
-                batch_first=True,
-                norm_first=True
-            ) for _ in range(self.cross_depth)  # 同样创建 self.cross_depth 个独立的层
-        ])
+        self.road_CrossAttender_decoder = nn.ModuleList(
+            Block(dim=d_model,
+                  num_heads=num_head_Kc,
+                  mlp_ratio=mlp_ratio,
+                  qkv_bias=qkv_bias,
+                  linear_bias=linear_bias,
+                  drop=dropout,
+                  drop_path=dpr[i],
+                  cross_attn=True
+                  )
+            for i in range(self.cross_depth)
+        )
 
         # OutTrajectoryAndProbability
         self.pre_time = 60
@@ -135,10 +138,11 @@ class SEPT(nn.Module):
                                                       :50][real_key_agent_mask]
         # real_agent_time_mask : [num_real_agent T]
 
-        x_agent_encode = self.TempoNet_encoder(
-            src=real_agent_feature,
-            src_key_padding_mask=real_agent_time_mask)
-        x_agent_maxpool = torch.max(x_agent_encode,axis=1).values
+
+        for blk in self.TempoNet_encoder:
+            real_agent_feature = blk(src=real_agent_feature,key_padding_mask=real_agent_time_mask)
+            
+        x_agent_maxpool = torch.max(real_agent_feature,axis=1).values
 
         x_agent_encode_full = torch.zeros(
             B, A, D, device=x_agent_projection.device, dtype=x_agent_projection.dtype)
@@ -166,7 +170,7 @@ class SEPT(nn.Module):
         x_road_projection += self.lane_type_embed.repeat(B, M, 1)
 
         # concat road and agent
-        x = torch.concat([x_agent_encode_full, x_road_projection], dim=1)
+        encode_x = torch.concat([x_agent_encode_full, x_road_projection], dim=1)
 
         spa_padding_mask = None
         if data["x_key_padding_mask"] is not None and data["lane_key_padding_mask"] is not None:
@@ -174,35 +178,28 @@ class SEPT(nn.Module):
                 [data["x_key_padding_mask"], data["lane_key_padding_mask"]], dim=1)
 
         # SpaNet
-        encode_x = self.SpaNet_encoder(
-            src=x, src_key_padding_mask=spa_padding_mask)
+        for blk in self.SpaNet_encoder:
+            encode_x = blk(src=encode_x,key_padding_mask=spa_padding_mask)
         
         encode_x = self.norm(encode_x)
         # ------------------Decoder--------------------
 
-        # kv_angent = encode_x[:, 0].unsqueeze(1)
-        # mask_agent = data["x_key_padding_mask"][:, 0].unsqueeze(1)
 
         batch_size = encode_x.size(0)
         batch_queries = self.queries.expand(batch_size, -1, -1)
 
-        # x = self.CrossAttender_decoder(
-        #     tgt=batch_queries,
-        #     memory=encode_x,
-        #     memory_key_padding_mask=spa_padding_mask
-        # )
-
         for ali in range(self.cross_depth):
             batch_queries = self.agent_CrossAttender_decoder[ali](
-                tgt=batch_queries,
-                memory=encode_x[:, 0].unsqueeze(1),
-                memory_key_padding_mask=data["x_key_padding_mask"][:, 0].unsqueeze(
-                    1)
+                src=batch_queries,
+                key_padding_mask=data["x_key_padding_mask"][:, 0].unsqueeze(1),
+                k=encode_x[:, 0].unsqueeze(1),
+                v=encode_x[:, 0].unsqueeze(1)
             )
             batch_queries = self.road_CrossAttender_decoder[ali](
-                tgt=batch_queries,
-                memory=encode_x[:, A:],
-                memory_key_padding_mask=data["lane_key_padding_mask"]
+                src=batch_queries,
+                key_padding_mask=data["lane_key_padding_mask"],
+                k=encode_x[:, A:],
+                v=encode_x[:, A:]
             )
 
         y_hat = self.mlp_trajectory(batch_queries)

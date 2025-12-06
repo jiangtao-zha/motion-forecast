@@ -10,8 +10,11 @@ defaults:
 
 # --- 可以定义一些全局或不属于特定组的参数 ---
 project_name: "sept_argo2"
-run_name: "default_run_${now:%Y-%m-%d_%H-%M-%S}" # 自动生成带时间戳的运行名称
+run_name: "${now:%Y-%m-%d_%H-%M-%S}" # 自动生成带时间戳的运行名称
 
+hydra:
+  run:
+    dir: outputs/${run_name}
 
 # --- (可选) 随机种子 ---
 seed: 42
