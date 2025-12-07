@@ -4,7 +4,7 @@
 overfit_batches: 1
 max_epochs: 50
 accelerator: "gpu"
-devices: [1] # 使用哪个 GPU, 或 [0, 1] 使用多个, 或 "auto"
+devices: auto # 使用哪个 GPU, 或 [0, 1] 使用多个, 或 "auto"
 gradient_clip_val: 1.0 # 可选：梯度裁剪
 enable_checkpointing: False
 # num_sanity_val_steps: 0
