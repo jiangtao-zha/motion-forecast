@@ -111,8 +111,8 @@ class SEPT(nn.Module):
 
         self.mlp_probability = nn.Sequential(nn.Linear(d_model, d_model * 2),
                                              nn.ReLU(),
-                                             nn.Linear(d_model * 2, 1),
-                                             nn.ReLU())
+                                             nn.Linear(d_model * 2, 1)
+                                             )
 
         self.dense_predictor = nn.Sequential(
             nn.Linear(d_model, d_model * 2), nn.ReLU(), nn.Linear(

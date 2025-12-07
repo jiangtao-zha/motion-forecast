@@ -13,7 +13,7 @@ num_head_Kc: 8
 num_queries: 6
 mlp_ratio: 4.0
 qkv_bias: False
-linear_bias: False
+linear_bias: True
 drop_path: 0.2
 dropout: 0
 activation: nn.GELU

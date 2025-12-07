@@ -100,7 +100,7 @@ class Block(nn.Module):
             need_weights=False
         )[0]
 
-        src = src + self.drop_path1(attn_output)
+        src = q + self.drop_path1(attn_output)
         src = src + self.drop_path2(self.mlp(self.norm2(src)))
 
         return src

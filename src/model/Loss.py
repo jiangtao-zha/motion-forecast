@@ -19,9 +19,9 @@ def WinTakeAllLoss(out, data):
 
     y_hat_best = y_hat[B_range, best_mode]  # [B T 2]
     agent_reg_loss = F.smooth_l1_loss(y_hat_best[..., :2], y)
-
     agent_cls_loss = F.cross_entropy(pi, best_mode.detach())
-    loss += agent_reg_loss + agent_cls_loss
+
+    loss = agent_reg_loss + agent_cls_loss
 
     # l2_norm_mean = torch.norm(y.unsqueeze(1) - y_hat, dim=-1).mean(-1)  # [B num_q]
     # agent_cls_loss = F.smooth_l1_loss(pi, l2_norm_mean.detach(), reduction='mean')

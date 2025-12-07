@@ -149,7 +149,7 @@ class SEPT_Module(L.LightningModule):
         在 step=0 时，比例为 start_ratio。
         在 step=warmup_steps 时，比例为 1.0。
         """
-        start_ratio = 0.1  # 假设你想让起始学习率是 max_lr 的 10%
+        start_ratio = self.hparams.start_lr_ratio # 假设你想让起始学习率是 max_lr 的 10%
         if step < self.hparams.warmup_steps:
             # 计算当前步数的增量比例： (1.0 - start_ratio) * (step / warmup_steps)
             # 总比例 = start_ratio + 增量比例
@@ -178,7 +178,7 @@ class SEPT_Module(L.LightningModule):
         cosine_scheduler = CosineAnnealingLR(
             optimizer,
             T_max=(total_steps - self.hparams.warmup_steps),
-            eta_min=1e-6
+            eta_min=self.hparams.min_learning_rate
         )
 
         # 3. 使用 SequentialLR 组合它们
