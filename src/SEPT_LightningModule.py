@@ -1,6 +1,6 @@
 from model.SEPT_insert import SEPT
 import pytorch_lightning as L
-from model.Loss import WinTakeAllLoss
+from model.Loss import WinTakeAllLoss_Laplace
 from metrics import minADE, minFDE, brierMinFDE, MR
 import torch.optim as optim
 from torchmetrics import MetricCollection
@@ -73,7 +73,7 @@ class SEPT_Module(L.LightningModule):
     def training_step(self, batch, batch_idx):
         out = self.model(batch)
 
-        loss, loss_reg, loss_cls, loss_other = WinTakeAllLoss(out, batch)
+        loss, loss_reg, loss_cls, loss_other = WinTakeAllLoss_Laplace(out, batch)
 
         # 准备 metric 输入
         # 需要将 probability (logits) 转换为概率
@@ -103,7 +103,7 @@ class SEPT_Module(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         out = self.model(batch)
 
-        loss, loss_reg, loss_cls, loss_other = WinTakeAllLoss(out, batch)
+        loss, loss_reg, loss_cls, loss_other = WinTakeAllLoss_Laplace(out, batch)
 
         # 准备 metric 输入
         # 需要将 probability (logits) 转换为概率

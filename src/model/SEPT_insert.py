@@ -107,7 +107,7 @@ class SEPT(nn.Module):
         self.pre_time = 60
         self.mlp_trajectory = nn.Sequential(nn.Linear(d_model, d_model * 2),
                                             nn.ReLU(),
-                                            nn.Linear(d_model * 2, 2 * self.pre_time))
+                                            nn.Linear(d_model * 2, 4 * self.pre_time))
 
         self.mlp_probability = nn.Sequential(nn.Linear(d_model, d_model * 2),
                                              nn.ReLU(),
@@ -206,7 +206,7 @@ class SEPT(nn.Module):
         pi = self.mlp_probability(batch_queries)
 
         B, N, _ = y_hat.shape
-        y_hat = y_hat.view(B, N, self.pre_time, 2)
+        y_hat = y_hat.view(B, N, self.pre_time, 4)
 
         x_others = encode_x[:, 1:A]
         y_hat_others = self.dense_predictor(
