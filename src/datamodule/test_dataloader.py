@@ -9,7 +9,7 @@ def main():
     # 请将此路径修改为您存储预处理数据(.pt文件)的根目录
     # 例如：如果您的数据在 '.../processed_data/train' 和 '.../processed_data/val'
     # 那么 DATA_ROOT 应设置为 '.../processed_data'
-    DATA_ROOT = Path("/home/ubuntu/DISK2/ZJT/argoverse_dataset_v2/sept_small/") # 假设您的数据根目录是 ./data
+    DATA_ROOT = Path("/home/ubuntu/jiangtao/argoverse-dataset_v2/sept_emp") # 假设您的数据根目录是 ./data
     
     # data_folder参数现在由datamodule内部处理，我们只需要提供根目录
     

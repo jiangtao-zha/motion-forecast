@@ -9,3 +9,8 @@ src/lightning_logs
 src/outputs
 src/post_datamodule
 src/tb_logs
+src/datamiming/bad_vedio
+src/datamiming/good_vedio
+src/datamiming/*.csv
+src/datamiming/*.pt
+src/datamiming/*.pkl

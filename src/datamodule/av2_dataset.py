@@ -48,8 +48,6 @@ def collate_fn(batch):
         # "x_velocity",
         "x_attr",
         # "lane_positions",
-
-
         # "x_diff",
     ]:
         data[key] = pad_sequence(
@@ -69,6 +67,12 @@ def collate_fn(batch):
     data["num_actors"] = (~data["x_key_padding_mask"]).sum(-1)
     data["num_lanes"] = (~data["lane_key_padding_mask"]).sum(-1)
 
+    scenario_ids = [item.pop('scenario_id') for item in batch if 'scenario_id' in item]
+    track_id = [item.pop('track_id') for item in batch if 'track_id' in item]
+    city = [item.pop('city') for item in batch if 'city' in item]
+    data["scenario_id"]  = scenario_ids
+    data["track_id"]  = track_id
+    data["city"]  = city
     # for name, tensor in data.items():
     #     # 确保只检查 torch.Tensor 且不是布尔型的张量
     #     if isinstance(tensor, torch.Tensor) and tensor.dtype != torch.bool:

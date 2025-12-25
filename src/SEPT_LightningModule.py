@@ -1,3 +1,5 @@
+from matplotlib import axis
+from polars import last
 from model.SEPT_insert import SEPT
 import pytorch_lightning as L
 from model.Loss import WinTakeAllLoss
@@ -128,6 +130,32 @@ class SEPT_Module(L.LightningModule):
         # 记录验证 metrics (在 epoch 结束时计算并记录)
         self.log_dict(self.val_metrics, on_step=False,
                       on_epoch=True, prog_bar=True)
+    
+    def predict_step(self, batch, batch_idx):
+        out = self.model(batch)
+
+        y_hat = out['y_hat'] # B 6 T 2
+        y = batch['y_diff'][:, 0, :, :] # B T 2
+
+        prob_softmax = torch.softmax(out["pi"].squeeze(-1), dim=-1) # B 6 1
+        
+        last_point_dist = torch.norm(y_hat[:,:,-1,:] - y[:,None,-1,:],dim = -1) # B 6
+        min_fde, min_index = torch.min(last_point_dist, dim = -1)
+
+        is_miss = min_fde > 2.0
+        batch_size = prob_softmax.shape[0]
+        top1_fde = last_point_dist[torch.arange(batch_size),torch.argmax(prob_softmax,dim = -1)]
+
+        return {
+        'scenario_id': batch['scenario_id'],
+        'min_fde': min_fde.detach().cpu(),
+        'is_miss': is_miss.detach().cpu(),
+        'top1_fde': top1_fde.detach().cpu(),
+        'entropy': -torch.sum(prob_softmax * torch.log(prob_softmax + 1e-9), dim=-1).detach().cpu(),
+        'latent_feat': out['target_feat'].detach().cpu(),
+        'y_hat': y_hat.detach().cpu()
+    }
+
 
     def test_step(self, batch, batch_idx):
         target_gt = batch['y_diff'][:, 0, :, :]

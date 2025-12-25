@@ -201,9 +201,9 @@ class Av2Extractor:
             "lane_padding_mask": lane_padding_mask,
             # "is_intersections": is_intersections,
 
-            # "scenario_id": scenario_id,
-            # "track_id": agent_id,
-            # "city": city,
+            "scenario_id": scenario_id,
+            "track_id": agent_id,
+            "city": city,
         }
 
     @staticmethod

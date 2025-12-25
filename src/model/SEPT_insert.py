@@ -182,6 +182,7 @@ class SEPT(nn.Module):
             encode_x = blk(src=encode_x,key_padding_mask=spa_padding_mask)
         
         encode_x = self.norm(encode_x)
+        target_feat = encode_x[:,0]
         # ------------------Decoder--------------------
 
 
@@ -214,4 +215,5 @@ class SEPT(nn.Module):
 
         return {"y_hat": y_hat,
                 "pi": pi,
-                "y_hat_others": y_hat_others}
+                "y_hat_others": y_hat_others,
+                "target_feat": target_feat}
